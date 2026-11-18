@@ -7,30 +7,83 @@ import io
 
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
-st.title("📅 智能会议助手 (AI 办公流闭环)")
+
+# 注入全局 CSS 样式，实现区域颜色区分
+st.markdown("""
+<style>
+    /* 大标题渐变背景 */
+    .main-title-container {
+        background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
+        padding: 20px 30px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .main-title-container h1 {
+        color: white !important;
+        margin: 0;
+        font-size: 2.2rem;
+    }
+    /* 侧边栏样式微调 */
+    .st-emotion-cache-1cypcdb {
+        background-color: #f8f9fa;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 生成你的总 Title 区域
+st.markdown("""
+<div class="main-title-container">
+    <h1>📅 智能会议助手 (AI 办公流闭环)</h1>
+</div>
+""", unsafe_allow_html=True)
 
 # ================= 数据库初始化 =================
 def init_db():
     conn = sqlite3.connect('meeting.db')
     c = conn.cursor()
+    # 增加了 creator 字段来记录申请人
     c.execute('''CREATE TABLE IF NOT EXISTS bookings
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  room TEXT, title TEXT, start_time TEXT, end_time TEXT)''')
+                  room TEXT, title TEXT, start_time TEXT, end_time TEXT, creator TEXT)''')
+    conn.commit()
+    conn.close()
+
+# 兼容旧数据库：如果表已经存在但没 creator 字段，补充一下
+def upgrade_db():
+    conn = sqlite3.connect('meeting.db')
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE bookings ADD COLUMN creator TEXT")
+    except sqlite3.OperationalError:
+        pass # 字段已存在，忽略
     conn.commit()
     conn.close()
 
 init_db()
+upgrade_db()
 
-# ================= 顶部导航栏 =================
-menu = st.sidebar.radio("功能导航", ["1. 会议室预约", "2. 通知模板生成", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
+# ================= 侧边栏 =================
+st.sidebar.header("功能导航")
+# 1. 名字修改为“会议室申请”
+menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 通知模板生成", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
 
-# ================= 功能一：会议室预约 =================
-if menu == "1. 会议室预约":
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚙️ AI 引擎设置")
+# 将 API Key 提到侧边栏，全局可用，谁用谁填
+api_key = st.sidebar.text_input("DeepSeek API Key", type="password", help="填入你自己的 API Key，仅在当前会话有效，不会保存。")
+
+# ================= 功能一：会议室申请 =================
+if menu == "1. 会议室申请":
     st.header("会议室申请与占用查看")
     col1, col2 = st.columns([1, 1.5])
     
     with col1:
         st.subheader("📝 申请会议室")
+        # 增加申请人输入
+        applicant = st.text_input("申请人姓名 (必填)")
         room = st.selectbox("选择会议室", ["大会议室", "小会议室", "党建会议室", "会客厅"])
         title = st.text_input("会议名称")
         
@@ -44,8 +97,10 @@ if menu == "1. 会议室预约":
             end_time = st.time_input("结束时间", (datetime.now() + timedelta(hours=1)).replace(minute=0, second=0), label_visibility="collapsed")
         
         st.write("")
-        if st.button("提交预约", type="primary", use_container_width=True):
-            if not title:
+        if st.button("提交申请", type="primary", use_container_width=True):
+            if not applicant:
+                st.warning("请填写申请人姓名！")
+            elif not title:
                 st.warning("请填写会议名称！")
             else:
                 start_str = f"{date} {start_time.strftime('%H:%M')}"
@@ -57,7 +112,8 @@ if menu == "1. 会议室预约":
                 if conflict:
                     st.error("❌ 预约失败：该时段该会议室已被占用！")
                 else:
-                    c.execute("INSERT INTO bookings (room, title, start_time, end_time) VALUES (?, ?, ?, ?)", (room, title, start_str, end_str))
+                    c.execute("INSERT INTO bookings (room, title, start_time, end_time, creator) VALUES (?, ?, ?, ?, ?)", 
+                              (room, title, start_str, end_str, applicant))
                     conn.commit()
                     st.success("✅ 预约成功！")
                 conn.close()
@@ -72,23 +128,39 @@ if menu == "1. 会议室预约":
         
         conn = sqlite3.connect('meeting.db')
         c = conn.cursor()
-        c.execute("SELECT room, title, start_time, end_time FROM bookings WHERE date(start_time) >= ? AND date(start_time) <= ? ORDER BY start_time", (str(start_of_week), str(end_of_week)))
+        c.execute("SELECT id, room, title, start_time, end_time, creator FROM bookings WHERE date(start_time) >= ? AND date(start_time) <= ? ORDER BY start_time", (str(start_of_week), str(end_of_week)))
         rows = c.fetchall()
         conn.close()
         
         if rows:
-            df = pd.DataFrame(rows, columns=["会议室", "会议名称", "开始时间", "结束时间"])
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            # 展示时隐藏 ID 列
+            df = pd.DataFrame(rows, columns=["ID", "会议室", "会议名称", "开始时间", "结束时间", "申请人"])
+            st.dataframe(df.drop(columns=["ID"]), use_container_width=True, hide_index=True)
+            
+            # 新增：个人取消预约逻辑
+            st.markdown("---")
+            st.markdown("**🗑️ 取消我的预约**")
+            cancel_user = st.text_input("请输入你的姓名以查找并取消你的会议：")
+            if cancel_user:
+                my_bookings = [r for r in rows if r[5] == cancel_user]
+                if my_bookings:
+                    for mb in my_bookings:
+                        c1, c2 = st.columns([4, 1])
+                        with c1:
+                            st.write(f"🔸 {mb[2]} | {mb[3]} - {mb[4]} ({mb[1]})")
+                        with c2:
+                            if st.button("取消预约", key=f"del_{mb[0]}"):
+                                conn = sqlite3.connect('meeting.db')
+                                c = conn.cursor()
+                                c.execute("DELETE FROM bookings WHERE id = ?", (mb[0],))
+                                conn.commit()
+                                conn.close()
+                                st.success("已取消该预约！")
+                                st.rerun()
+                else:
+                    st.info("没有找到你名下的预约记录。")
         else:
             st.info("本周暂无会议安排，所有会议室均空闲。")
-            
-        if st.button("🗑️ 清空历史测试数据"):
-            conn = sqlite3.connect('meeting.db')
-            c = conn.cursor()
-            c.execute("DELETE FROM bookings")
-            conn.commit()
-            conn.close()
-            st.rerun()
 
 # ================= 功能二：通知模板生成 =================
 elif menu == "2. 通知模板生成":
@@ -117,8 +189,6 @@ elif menu == "3. AI 纪要风格仿写":
     st.header("AI 会议纪要风格仿写")
     st.markdown("输入**历史纪要**提供格式与语气参考，再输入**本次会议散乱要点**，AI 将为你生成结构一致、文风相符的纪要。")
     
-    api_key = st.text_input("请输入你的大模型 API Key", type="password")
-    
     col1, col2 = st.columns(2)
     with col1:
         style_text = st.text_area("📚 历史纪要样例（风格与结构参考）", height=250, placeholder="粘贴一段以前的优秀纪要...")
@@ -127,7 +197,7 @@ elif menu == "3. AI 纪要风格仿写":
     
     if st.button("✨ 一键生成正式纪要", type="primary"):
         if not api_key: 
-            st.warning("请先填写 API Key。")
+            st.warning("⚠️ 请先在左侧侧边栏填写你的 API Key。")
         elif not style_text or not draft_text: 
             st.warning("请填写完整。")
         else:
@@ -158,7 +228,7 @@ elif menu == "3. AI 纪要风格仿写":
                     st.session_state['latest_minutes'] = ai_result
                     st.info("💡 你可以复制上方文本，或者前往左侧【4. 决议事项与任务提取】自动生成待办表。")
                 except Exception as e:
-                    st.error(f"调用失败：{e}")
+                    st.error(f"调用失败，请检查 Key 或网络。错误信息：{e}")
 
 
 # ================= 功能四：决议事项提取 =================
@@ -166,14 +236,12 @@ elif menu == "4. 决议事项与任务提取":
     st.header("🎯 决议事项自动提取与任务跟踪")
     st.markdown("从会议纪要中自动识别**工作事项、责任人、完成时限**，生成标准待办清单。")
     
-    api_key = st.text_input("请输入你的大模型 API Key", type="password")
-    
     default_text = st.session_state.get('latest_minutes', '')
     minutes_text = st.text_area("📄 会议纪要内容", value=default_text, height=200, placeholder="请粘贴会议纪要...")
     
     if st.button("🔍 自动提取任务清单", type="primary"):
         if not api_key: 
-            st.warning("请先填写 API Key。")
+            st.warning("⚠️ 请先在左侧侧边栏填写你的 API Key。")
         elif not minutes_text: 
             st.warning("请提供纪要内容。")
         else:
@@ -194,7 +262,10 @@ elif menu == "4. 决议事项与任务提取":
                     }
                     response = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, json=data)
                     response.raise_for_status()
+                    
+                    # 清理可能存在的 markdown 代码块符号，防止 pd.read_csv 报错
                     csv_result = response.json()['choices'][0]['message']['content']
+                    csv_result = csv_result.replace("```csv", "").replace("```", "").strip()
                     
                     df = pd.read_csv(io.StringIO(csv_result))
                     
