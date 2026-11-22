@@ -28,7 +28,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 大标题（去掉了括号内容）
+# 大标题
 st.markdown("""
 <div class="main-title-container">
     <h1>📅 智能会议助手</h1>
@@ -39,7 +39,6 @@ st.markdown("""
 def init_db():
     conn = sqlite3.connect('meeting.db')
     c = conn.cursor()
-    # 既然不要申请人了，数据库保留原有字段即可，不影响
     c.execute('''CREATE TABLE IF NOT EXISTS bookings
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   room TEXT, title TEXT, start_time TEXT, end_time TEXT)''')
@@ -99,10 +98,9 @@ if menu == "1. 会议室申请":
     with col2:
         st.subheader("📅 全部会议预约情况")
         
-        # 增加检索范围
         today = datetime.now().date()
-        default_start = today - timedelta(days=today.weekday()) # 默认本周一
-        default_end = default_start + timedelta(days=6)        # 默认本周日
+        default_start = today - timedelta(days=today.weekday())
+        default_end = default_start + timedelta(days=6)
         
         st.markdown("**检索范围**")
         date_col1, date_col2 = st.columns(2)
@@ -118,15 +116,11 @@ if menu == "1. 会议室申请":
         conn.close()
         
         if rows:
-            # 使用 st.data_editor 实现带删除按钮的表格
             df = pd.DataFrame(rows, columns=["ID", "会议室", "会议名称", "开始时间", "结束时间"])
-            
-            # 插入一列“取消预约”，用于复选框操作
             df.insert(0, "选择取消", False)
             
             st.caption("勾选第一列的复选框，然后点击下方按钮即可取消对应会议。")
             
-            # 生成可编辑表格（隐藏 ID 列）
             edited_df = st.data_editor(
                 df.drop(columns=["ID"]),
                 use_container_width=True,
@@ -137,10 +131,9 @@ if menu == "1. 会议室申请":
                         default=False,
                     )
                 },
-                disabled=["会议室", "会议名称", "开始时间", "结束时间"] # 锁定其他列不可修改
+                disabled=["会议室", "会议名称", "开始时间", "结束时间"]
             )
             
-            # 找到被勾选的行
             selected_rows = edited_df[edited_df["选择取消"] == True]
             
             if not selected_rows.empty:
@@ -148,7 +141,6 @@ if menu == "1. 会议室申请":
                     conn = sqlite3.connect('meeting.db')
                     c = conn.cursor()
                     for index, row in selected_rows.iterrows():
-                        # 通过匹配内容来寻找原本的 ID 进行删除
                         c.execute("DELETE FROM bookings WHERE start_time=? AND room=? AND title=?", 
                                   (row["开始时间"], row["会议室"], row["会议名称"]))
                     conn.commit()
@@ -158,26 +150,152 @@ if menu == "1. 会议室申请":
         else:
             st.info(f"在 {search_start} 至 {search_end} 期间，暂无会议安排。")
 
+
 # ================= 功能二：通知模板生成 =================
 elif menu == "2. 通知模板生成":
-    st.header("会议通知模板生成器")
-    templates = {
-        "正式通知": "【会议通知】\n主题：{title}\n时间：{time}\n地点：{room}\n参会人员：{people}\n会议要求：{req}\n请各位准时参加，收到请回复。",
-        "简短通知": "📢 各位好，我们将于 {time} 在 {room} 召开关于【{title}】的会议。参会人：{people}。要求：{req}。请留意。"
-    }
-    template_choice = st.selectbox("选择通知模板", list(templates.keys()))
-    col1, col2 = st.columns(2)
-    with col1:
-        t_title = st.text_input("会议主题")
-        t_time = st.text_input("会议时间 (如：10月20日 下午2点)")
-        t_room = st.text_input("会议地点")
-    with col2:
-        t_people = st.text_input("参会人员")
-        t_req = st.text_input("会议要求 (如：携带图纸、准备汇报PPT)")
+    st.header("会议通知与议程生成器")
+    
+    tab1, tab2 = st.tabs(["📝 快速文本通知", "📄 正式会议议程 (导出Word)"])
+    
+    with tab1:
+        templates = {
+            "正式通知": "【会议通知】\n主题：{title}\n时间：{time}\n地点：{room}\n参会人员：{people}\n会议要求：{req}\n请各位准时参加，收到请回复。",
+            "简短通知": "📢 各位好，我们将于 {time} 在 {room} 召开关于【{title}】的会议。参会人：{people}。要求：{req}。请留意。"
+        }
+        template_choice = st.selectbox("选择通知模板", list(templates.keys()))
+        col1, col2 = st.columns(2)
+        with col1:
+            t_title = st.text_input("会议主题")
+            t_time = st.text_input("会议时间 (如：10月20日 下午2点)")
+            t_room = st.text_input("会议地点")
+        with col2:
+            t_people = st.text_input("参会人员")
+            t_req = st.text_input("会议要求 (如：携带图纸、准备汇报PPT)")
+            
+        if st.button("生成通知文本", type="primary"):
+            result = templates[template_choice].format(title=t_title, time=t_time, room=t_room, people=t_people, req=t_req)
+            st.text_area("👇 生成结果（可直接复制）", value=result, height=200)
+
+    with tab2:
+        st.markdown("请填写会议信息。系统将自动按公文格式排版，完美对齐。")
         
-    if st.button("生成通知文本", type="primary"):
-        result = templates[template_choice].format(title=t_title, time=t_time, room=t_room, people=t_people, req=t_req)
-        st.text_area("👇 生成结果（可直接复制）", value=result, height=200)
+        w_company = st.text_input("公司名称", "陕西秦耀储能科技有限公司")
+        w_title = st.text_input("会议名称", "2026年11月预算管理委员会月度会议议程")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            w_time = st.text_input("会议时间", "2026年11月4日（星期三）10:00")
+            w_room = st.text_input("会议地点", "公司大会议室")
+            w_tx_id = st.text_input("腾讯会议号 (选填)", "176-654-355")
+            w_host = st.text_input("主持人", "总会计师 靳一飞")
+        with col2:
+            w_attend = st.text_area("参会人员 (按图片换行)", "王军 游平 武志涛 潘政 靳一飞 程少振\n蒋思 叶慧蓉", height=68)
+            w_guest = st.text_area("列席人员 (按图片换行)", "崔鑫 韦永刚 张维维 焦梦雄 周海 刘心宇\n史乐 孙文婷 赵守华", height=68)
+            w_date_sign = st.text_input("落款日期", "2026年11月3日")
+            
+        w_agenda = st.text_area("会议议程 (一行一项)", "（一）财务资产部通报10月资金计划执行情况。\n（二）审议各部门上报的11月资金计划。\n（三）审议2027年全面预算“一上”方案。\n（四）预算管理委员会主任王军总结。", height=150)
+
+        if st.button("✨ 生成 Word 议程文档", type="primary"):
+            from docx import Document
+            from docx.shared import Pt, Inches
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from docx.oxml.ns import qn
+            import io
+            
+            doc = Document()
+            
+            # 设置默认字体
+            doc.styles['Normal'].font.name = '仿宋_GB2312'
+            doc.styles['Normal']._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
+
+            # 1. 标题
+            p_company = doc.add_paragraph()
+            p_company.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run_c = p_company.add_run(w_company)
+            run_c.font.name = '黑体'
+            run_c._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
+            run_c.font.size = Pt(16)
+            
+            p_title = doc.add_paragraph()
+            p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run_t = p_title.add_run(w_title)
+            run_t.font.name = '黑体'
+            run_t._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
+            run_t.font.size = Pt(18)
+            run_t.bold = True
+            
+            doc.add_paragraph()
+            
+            # 辅助排版函数
+            def add_hanging_paragraph(label, content):
+                p = doc.add_paragraph()
+                p.paragraph_format.line_spacing = 1.5
+                run_label = p.add_run(label)
+                run_label.font.name = '黑体'
+                run_label._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
+                run_label.font.size = Pt(14)
+                
+                lines = content.strip().split('\n')
+                run_content = p.add_run(lines[0])
+                run_content.font.size = Pt(14)
+                for line in lines[1:]:
+                    run_content.add_break()
+                    run_content.add_text("　　　　　　" + line)
+                return p
+
+            # 2. 信息
+            add_hanging_paragraph("会议时间：", w_time)
+            room_content = w_room
+            if w_tx_id:
+                room_content += f"\n#腾讯会议：{w_tx_id}"
+            add_hanging_paragraph("会议地点：", room_content)
+            add_hanging_paragraph("主 持 人：", w_host)
+            add_hanging_paragraph("参会人员：", w_attend)
+            if w_guest.strip():
+                add_hanging_paragraph("列席人员：", w_guest)
+                
+            # 3. 议程
+            p_agenda_title = doc.add_paragraph()
+            p_agenda_title.paragraph_format.line_spacing = 1.5
+            run_ag = p_agenda_title.add_run("会议议程：")
+            run_ag.font.name = '黑体'
+            run_ag._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
+            run_ag.font.size = Pt(14)
+            run_ag.bold = True
+            
+            for item in w_agenda.split('\n'):
+                if item.strip():
+                    p = doc.add_paragraph()
+                    p.paragraph_format.line_spacing = 1.5
+                    p.paragraph_format.left_indent = Inches(0.5)
+                    run_item = p.add_run(item)
+                    run_item.font.size = Pt(14)
+                    
+            doc.add_paragraph() 
+            doc.add_paragraph() 
+            
+            # 4. 落款
+            p_sign_company = doc.add_paragraph()
+            p_sign_company.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            run_sc = p_sign_company.add_run(w_company)
+            run_sc.font.size = Pt(14)
+            
+            p_sign_date = doc.add_paragraph()
+            p_sign_date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            run_sd = p_sign_date.add_run(w_date_sign)
+            run_sd.font.size = Pt(14)
+
+            doc_io = io.BytesIO()
+            doc.save(doc_io)
+            doc_io.seek(0)
+
+            st.success("Word 议程已生成！排版已按标准公文格式对齐。")
+            st.download_button(
+                label="📥 下载会议议程 (.docx)",
+                data=doc_io,
+                file_name=f"{w_title}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
 
 
 # ================= 功能三：AI 纪要风格仿写 =================
@@ -222,6 +340,8 @@ elif menu == "3. AI 纪要风格仿写":
                     st.success("生成完成！")
                     st.text_area("👇 生成的会议纪要", value=ai_result, height=300)
                     st.session_state['latest_minutes'] = ai_result
+                    
+                    st.warning("⚠️ 人工审核卡点：由于大模型存在幻觉，请人工核对责任人、时间节点等关键事实，确认无误后方可正式发布。")
                     st.info("💡 你可以复制上方文本，或者前往左侧【4. 决议事项与任务提取】自动生成待办表。")
                 except Exception as e:
                     st.error(f"调用失败，请检查 Key 或网络。错误信息：{e}")
@@ -260,7 +380,6 @@ elif menu == "4. 决议事项与任务提取":
                     response.raise_for_status()
                     
                     csv_result = response.json()['choices'][0]['message']['content']
-                    # 清理可能存在的 markdown 代码块符号
                     csv_result = csv_result.replace("```csv", "").replace("```", "").strip()
                     
                     df = pd.read_csv(io.StringIO(csv_result))
