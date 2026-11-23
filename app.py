@@ -11,22 +11,29 @@ st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wi
 # 注入全局 CSS 样式
 st.markdown("""
 <style>
-    /* 1. 彻底清除 Streamlit 默认的顶部空白 */
+    /* 1. 隐藏自带的顶部菜单 */
     header[data-testid="stHeader"] {
         display: none !important;
     }
+    
+    /* 2. 给主内容区留出顶部空间，防止被固定标题遮挡 */
     .block-container {
-        padding-top: 4.5rem !important;
-        padding-bottom: 1rem !important;
+        padding-top: 5rem !important;
     }
     
-    /* 2. 绝对全屏宽度的固定横幅 */
+    /* 3. 强制把侧边栏层级提到最高，不被蓝条挡住 */
+    section[data-testid="stSidebar"] {
+        z-index: 9999999 !important; 
+        background-color: #f8f9fa;
+    }
+    
+    /* 4. 全屏蓝条，层级稍微低于侧边栏 */
     .global-fixed-header {
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;  /* 横跨整个屏幕宽度 */
-        z-index: 999999;
+        width: 100vw;
+        z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
         padding: 16px 0;
         color: white;
@@ -42,7 +49,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染固定横幅 (去掉了图标)
+# 渲染固定横幅
 st.markdown("""
 <div class="global-fixed-header">
     <h1>智能会议助手</h1>
