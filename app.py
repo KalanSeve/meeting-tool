@@ -11,35 +11,41 @@ st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wi
 # 注入全局 CSS 样式
 st.markdown("""
 <style>
-    /* 强制固定顶部横幅，横跨整个右侧 */
-    .fixed-header {
+    /* 1. 彻底清除 Streamlit 默认的顶部空白 */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    .block-container {
+        padding-top: 4.5rem !important;
+        padding-bottom: 1rem !important;
+    }
+    
+    /* 2. 绝对全屏宽度的固定横幅 */
+    .global-fixed-header {
         position: fixed;
         top: 0;
-        left: 21rem; /* 避开左侧导航栏 */
-        right: 0;
-        z-index: 99999;
+        left: 0;
+        width: 100vw;  /* 横跨整个屏幕宽度 */
+        z-index: 999999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
-        padding: 15px 30px;
+        padding: 16px 0;
         color: white;
         text-align: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    .fixed-header h1 {
+    .global-fixed-header h1 {
         color: white !important;
         margin: 0;
         font-size: 1.8rem;
-    }
-    /* 给主内容区顶部留出空间，防止被固定标题挡住 */
-    .block-container {
-        padding-top: 6rem !important;
+        font-weight: 600;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染固定横幅
+# 渲染固定横幅 (去掉了图标)
 st.markdown("""
-<div class="fixed-header">
-    <h1>📅 智能会议助手</h1>
+<div class="global-fixed-header">
+    <h1>智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
 
@@ -199,7 +205,6 @@ elif menu == "2. 通知模板生成":
             w_recorder = st.text_input("会议记录人", "董哲源")
             w_date_sign = st.text_input("落款日期", "2026年1月17日")
             
-        # 这里去掉了原来的空格，让用户直接连着打
         w_attend = st.text_area("参会人员", "游平 武志涛 潘政 张中辉 韦永刚 张江峰 贾卫军 米美光", height=68)
             
         w_agenda = st.text_area("会议议程 (一行一项，无需输入序号)", "计划经营部对《进度结算指引》进行二次宣贯。\n地上EPC项目部汇报相关情况。\n地下EPC#1标段项目部汇报相关情况。\n地下EPC#2标段项目部汇报相关情况。\n各方就年前结算计划及资金需求进行讨论。\n领导总结发言。", height=200)
