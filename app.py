@@ -8,7 +8,7 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
 
-# 注入全局 CSS 样式 (最终完美兼容版)
+# 注入全局 CSS 样式
 st.markdown("""
 <style>
     /* 1. 隐藏原生顶栏 */
@@ -16,35 +16,21 @@ st.markdown("""
         display: none !important;
     }
     
-    /* 2. 强制把 Streamlit 原生侧边栏拉回来，固定在左侧，层级拉满 */
+    /* 2. 左侧导航栏修复，防止被盖住 */
     section[data-testid="stSidebar"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        height: 100vh !important;
-        width: 21rem !important;
-        z-index: 9999998 !important; 
-        background-color: #f8f9fa;
-        border-right: 1px solid #e0e0e0;
-    }
-    
-    /* 侧边栏折叠按钮（>>）位置微调 */
-    button[data-testid="stSidebarCollapseButton"] {
-        top: 15px !important;
-        z-index: 9999999 !important;
+        z-index: 9999998 !important;
     }
 
-    /* 3. 右侧主内容区给侧边栏让出空间 */
+    /* 3. 右侧主内容区留出顶部空间 */
     .main .block-container {
         padding-top: 5.5rem !important;
-        padding-left: 23rem !important; 
     }
 
-    /* 4. 蓝条：完美覆盖右侧，宽度计算避开侧边栏 */
-    .right-fixed-header {
+    /* 4. 蓝条基础样式：避开左侧 21rem 的导航栏 */
+    .dynamic-header {
         position: fixed;
         top: 0;
-        left: 21rem; /* 刚好卡在侧边栏右边 */
+        left: 21rem; /* 对应侧边栏默认宽度 */
         right: 0;
         height: 60px;
         z-index: 9999999;
@@ -54,41 +40,26 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: left 0.3s ease; /* 关键：添加平滑过渡动画 */
     }
-    .right-fixed-header h1 {
+    
+    .dynamic-header h1 {
         color: white !important;
         margin: 0;
         font-size: 1.6rem;
         font-weight: 600;
     }
 
-    /* 5. 巧妙利用伪元素在侧边栏上方补齐 60px 的留白区，防白边/遮挡 */
-    section[data-testid="stSidebar"]::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 60px;
-        background: #f8f9fa; /* 颜色和侧边栏一致 */
-        border-bottom: 1px solid #e0e0e0;
-        z-index: 9999997;
-    }
-
-    /* 6. 当侧边栏折叠时，蓝条向左延展填满屏幕 */
-    section[data-testid="stSidebar"][aria-expanded="false"] + div .right-fixed-header {
+    /* 5. 核心黑科技：当侧边栏隐藏时，蓝条向左拉伸到 0 */
+    section[data-testid="stSidebar"][aria-expanded="false"] + div .dynamic-header {
         left: 0 !important;
-        transition: left 0.3s ease;
-    }
-    section[data-testid="stSidebar"][aria-expanded="false"]::before {
-        display: none; /* 折叠时隐藏侧边栏顶部补丁 */
     }
 </style>
 """, unsafe_allow_html=True)
 
 # 渲染固定蓝条
 st.markdown("""
-<div class="right-fixed-header">
+<div class="dynamic-header">
     <h1>智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
