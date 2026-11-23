@@ -8,47 +8,52 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
 
-# 1. 利用 Streamlit 的官方容器特性，只在顶部加 CSS，不破坏左侧结构
+# 注入终极版 CSS 样式
 st.markdown("""
 <style>
-    /* 这里只针对右侧主内容区的 padding 做微调 */
-    .block-container {
-        padding-top: 5rem !important;
+    /* 1. 隐藏默认的顶部留白和菜单 */
+    header[data-testid="stHeader"] {
+        display: none !important;
     }
-    /* 固定顶栏样式 */
-    .fixed-top-bar {
+    
+    /* 2. 终极顶部蓝条：绝对固定在全屏顶部，层级拉满 */
+    .top-global-bar {
         position: fixed;
         top: 0;
-        /* 这里不写 left 属性，Streamlit 自动会让它靠右 */
-        height: 65px;
+        left: 0;
+        width: 100vw;
+        height: 60px;
+        z-index: 9999999; /* 层级最高 */
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 999999;
-        /* 核心：用宽度控制不遮挡侧边栏 (100% 减去侧边栏宽度) */
-        width: calc(100% - 21rem); 
-        right: 0;
-        border-radius: 0 0 10px 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    .fixed-top-bar h1 {
+    .top-global-bar h1 {
         color: white !important;
         margin: 0;
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         font-weight: 600;
     }
+
+    /* 3. 给主内容区和侧边栏留出顶部的 60px 空间 */
+    section[data-testid="stSidebar"] {
+        top: 60px !important; /* 侧边栏从蓝条下方开始 */
+        height: calc(100vh - 60px) !important; /* 高度扣除蓝条 */
+        z-index: 99999 !important;
+    }
     
-    /* 侧边栏折叠时的适配 */
-    section[data-testid="stSidebar"][aria-expanded="false"] ~ div .fixed-top-bar {
-        width: 100%;
+    .main .block-container {
+        padding-top: 5.5rem !important; /* 右侧内容区也往下挪 */
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染固定标题
+# 渲染顶部绝对固定蓝条
 st.markdown("""
-<div class="fixed-top-bar">
+<div class="top-global-bar">
     <h1>智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
@@ -65,7 +70,7 @@ def init_db():
 
 init_db()
 
-# ================= 侧边栏 (正常渲染) =================
+# ================= 侧边栏 =================
 st.sidebar.header("功能导航")
 menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 通知模板生成", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
 
@@ -222,12 +227,10 @@ elif menu == "2. 通知模板生成":
             
             doc = Document()
             
-            # 全局默认字体为仿宋_GB2312，三号字（16磅）
             doc.styles['Normal'].font.name = '仿宋_GB2312'
             doc.styles['Normal']._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
             doc.styles['Normal'].font.size = Pt(16)
 
-            # --- 标题部分 ---
             p_company = doc.add_paragraph()
             p_company.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p_company.paragraph_format.space_after = Pt(0) 
@@ -235,7 +238,7 @@ elif menu == "2. 通知模板生成":
             run_c = p_company.add_run(w_company)
             run_c.font.name = '方正小标宋简体'
             run_c._element.rPr.rFonts.set(qn('w:eastAsia'), '方正小标宋简体')
-            run_c.font.size = Pt(22) # 二号字
+            run_c.font.size = Pt(22)
             run_c.bold = False 
             
             p_title = doc.add_paragraph()
@@ -245,26 +248,23 @@ elif menu == "2. 通知模板生成":
             run_t = p_title.add_run(w_title)
             run_t.font.name = '方正小标宋简体'
             run_t._element.rPr.rFonts.set(qn('w:eastAsia'), '方正小标宋简体')
-            run_t.font.size = Pt(22) # 二号字
+            run_t.font.size = Pt(22)
             run_t.bold = False 
             
             doc.add_paragraph() 
             
-            # 辅助函数：制表符对齐法（完美解决换行）
             def add_info_line(label, content):
                 p = doc.add_paragraph()
                 p.paragraph_format.line_spacing = 1.5 
                 p.paragraph_format.space_after = Pt(0) 
                 p.paragraph_format.space_before = Pt(0)
                 
-                # 关键点：使用 Tab 键对齐
                 run_label = p.add_run(label + "\t")
                 run_label.font.name = '黑体'
                 run_label._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
-                run_label.font.size = Pt(16) # 三号字
+                run_label.font.size = Pt(16)
                 run_label.bold = False
                 
-                # 设置制表位在 2.5 厘米处，这样换行后会自动和上一行的名字对齐
                 p.paragraph_format.tab_stops.add_tab_stop(Cm(2.5))
                 
                 run_content = p.add_run(content.strip())
@@ -274,7 +274,6 @@ elif menu == "2. 通知模板生成":
                 run_content.bold = False
                 return p
 
-            # --- 会议基础信息 ---
             add_info_line("会议时间：", w_time)
             add_info_line("会议地点：", w_room)
             if w_tx_id.strip():
@@ -283,7 +282,6 @@ elif menu == "2. 通知模板生成":
             add_info_line("参会人员：", w_attend)
             add_info_line("会议记录：", w_recorder)
                 
-            # --- 会议议程 ---
             doc.add_paragraph() 
             p_agenda_title = doc.add_paragraph()
             p_agenda_title.paragraph_format.line_spacing = 1.5
@@ -301,7 +299,7 @@ elif menu == "2. 通知模板生成":
                 p = doc.add_paragraph()
                 p.paragraph_format.line_spacing = 1.5
                 p.paragraph_format.space_after = Pt(0)
-                p.paragraph_format.left_indent = Cm(1.5) # 议程缩进
+                p.paragraph_format.left_indent = Cm(1.5)
                 
                 num_str = chinese_nums[i] if i < len(chinese_nums) else str(i+1)
                 run_item = p.add_run(f"（{num_str}）{item}")
@@ -313,7 +311,6 @@ elif menu == "2. 通知模板生成":
             doc.add_paragraph() 
             doc.add_paragraph() 
             
-            # --- 落款 ---
             p_sign_company = doc.add_paragraph()
             p_sign_company.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             p_sign_company.paragraph_format.line_spacing = 1.5
@@ -334,7 +331,6 @@ elif menu == "2. 通知模板生成":
             run_sd.font.size = Pt(16)
             run_sd.bold = False
 
-            # 保存
             doc_io = io.BytesIO()
             doc.save(doc_io)
             doc_io.seek(0)
