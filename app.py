@@ -8,52 +8,52 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
 
-# 注入终极版 CSS 样式
+# 注入全局 CSS 样式
 st.markdown("""
 <style>
-    /* 1. 隐藏默认的顶部留白和菜单 */
+    /* 1. 隐藏默认的顶部留白，但不影响折叠按钮 */
     header[data-testid="stHeader"] {
-        display: none !important;
+        background-color: transparent !important;
     }
     
-    /* 2. 终极顶部蓝条：绝对固定在全屏顶部，层级拉满 */
-    .top-global-bar {
+    /* 2. 蓝条样式：固定在右侧主内容区顶部，高度与原生顶栏齐平 */
+    .right-fixed-header {
         position: fixed;
         top: 0;
-        left: 0;
-        width: 100vw;
+        left: 21rem; /* 侧边栏展开时的默认宽度 */
+        right: 0;
         height: 60px;
-        z-index: 9999999; /* 层级最高 */
+        z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    .top-global-bar h1 {
+    .right-fixed-header h1 {
         color: white !important;
         margin: 0;
         font-size: 1.6rem;
         font-weight: 600;
     }
 
-    /* 3. 给主内容区和侧边栏留出顶部的 60px 空间 */
-    section[data-testid="stSidebar"] {
-        top: 60px !important; /* 侧边栏从蓝条下方开始 */
-        height: calc(100vh - 60px) !important; /* 高度扣除蓝条 */
-        z-index: 99999 !important;
+    /* 3. 监听侧边栏折叠状态：折叠时蓝条自动贴边 */
+    section[data-testid="stSidebar"][aria-expanded="false"] + div .right-fixed-header {
+        left: 0 !important;
+        transition: left 0.3s ease;
     }
-    
-    .main .block-container {
-        padding-top: 5.5rem !important; /* 右侧内容区也往下挪 */
+
+    /* 4. 给主内容区留出空间，避免被蓝条挡住 */
+    .block-container {
+        padding-top: 5rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染顶部绝对固定蓝条
+# 渲染固定蓝条
 st.markdown("""
-<div class="top-global-bar">
+<div class="right-fixed-header">
     <h1>智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
