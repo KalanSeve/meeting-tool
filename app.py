@@ -11,34 +11,21 @@ st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wi
 # 注入全局 CSS 样式
 st.markdown("""
 <style>
-    /* 1. 隐藏顶部默认的留白 */
+    /* 1. 隐藏顶部自带的空白条 */
     header[data-testid="stHeader"] {
         display: none !important;
     }
     
-    /* 2. 核心修复：让侧边栏固定在最左侧，层级拉到极高，绝不被遮挡 */
-    section[data-testid="stSidebar"] {
-        position: fixed !important;
-        left: 0 !important;
-        top: 0 !important;
-        bottom: 0 !important;
-        width: 21rem !important;
-        z-index: 9999999 !important; 
-        background-color: #f8f9fa;
-        border-right: 1px solid #e0e0e0;
-    }
-    
-    /* 3. 主内容区给侧边栏让出空间 */
-    .main .block-container {
-        padding-top: 5.5rem !important;
-        padding-left: 23rem !important; /* 避开左侧侧边栏 */
+    /* 2. 主内容区顶部留出空间，避免被蓝条挡住 */
+    .block-container {
+        padding-top: 6rem !important;
     }
 
-    /* 4. 蓝条只横跨右侧主内容区，绝不遮挡侧边栏 */
+    /* 3. 蓝条样式：仅固定在右侧主内容区，绝不遮挡左侧任务栏 */
     .right-fixed-header {
         position: fixed;
         top: 0;
-        left: 21rem; 
+        left: 21rem; /* 避开左侧侧边栏的宽度 */
         right: 0;
         height: 65px;
         z-index: 99999;
@@ -54,6 +41,12 @@ st.markdown("""
         margin: 0;
         font-size: 1.8rem;
         font-weight: 600;
+    }
+
+    /* 4. 当侧边栏折叠时（宽度变窄），自动调整蓝条位置 */
+    [data-testid="stSidebar"][aria-expanded="false"] + .main .right-fixed-header {
+        left: 0 !important;
+        transition: left 0.3s ease;
     }
 </style>
 """, unsafe_allow_html=True)
