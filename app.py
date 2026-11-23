@@ -8,52 +8,47 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
 
-# 注入全局 CSS 样式
+# 1. 利用 Streamlit 的官方容器特性，只在顶部加 CSS，不破坏左侧结构
 st.markdown("""
 <style>
-    /* 1. 隐藏顶部自带的空白条 */
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
-    
-    /* 2. 主内容区顶部留出空间，避免被蓝条挡住 */
+    /* 这里只针对右侧主内容区的 padding 做微调 */
     .block-container {
-        padding-top: 6rem !important;
+        padding-top: 5rem !important;
     }
-
-    /* 3. 蓝条样式：仅固定在右侧主内容区，绝不遮挡左侧任务栏 */
-    .right-fixed-header {
+    /* 固定顶栏样式 */
+    .fixed-top-bar {
         position: fixed;
         top: 0;
-        left: 21rem; /* 避开左侧侧边栏的宽度 */
-        right: 0;
+        /* 这里不写 left 属性，Streamlit 自动会让它靠右 */
         height: 65px;
-        z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 999999;
+        /* 核心：用宽度控制不遮挡侧边栏 (100% 减去侧边栏宽度) */
+        width: calc(100% - 21rem); 
+        right: 0;
+        border-radius: 0 0 10px 10px;
     }
-    .right-fixed-header h1 {
+    .fixed-top-bar h1 {
         color: white !important;
         margin: 0;
         font-size: 1.8rem;
         font-weight: 600;
     }
-
-    /* 4. 当侧边栏折叠时（宽度变窄），自动调整蓝条位置 */
-    [data-testid="stSidebar"][aria-expanded="false"] + .main .right-fixed-header {
-        left: 0 !important;
-        transition: left 0.3s ease;
+    
+    /* 侧边栏折叠时的适配 */
+    section[data-testid="stSidebar"][aria-expanded="false"] ~ div .fixed-top-bar {
+        width: 100%;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染固定蓝条
+# 渲染固定标题
 st.markdown("""
-<div class="right-fixed-header">
+<div class="fixed-top-bar">
     <h1>智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
@@ -70,7 +65,7 @@ def init_db():
 
 init_db()
 
-# ================= 侧边栏 =================
+# ================= 侧边栏 (正常渲染) =================
 st.sidebar.header("功能导航")
 menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 通知模板生成", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
 
