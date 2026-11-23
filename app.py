@@ -11,24 +11,24 @@ st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wi
 # 注入全局 CSS 样式
 st.markdown("""
 <style>
-    /* 1. 隐藏 Streamlit 默认的顶部空白 */
+    /* 1. 隐藏 Streamlit 默认的顶部空白和菜单 */
     header[data-testid="stHeader"] {
         display: none !important;
     }
     
-    /* 2. 强制左侧侧边栏置顶显示，不被任何东西遮挡 */
+    /* 2. 侧边栏保持最高层级，并保留原生折叠按钮 */
     section[data-testid="stSidebar"] {
-        z-index: 999999 !important;
-        background-color: #f8f9fa;
+        z-index: 9999999 !important;
     }
     
-    /* 3. 固定蓝条：绝对定位，从左边侧边栏的右侧开始，一直拉伸到最右边 */
+    /* 3. 核心：蓝条固定在主内容区顶部，避开侧边栏 */
     .global-fixed-header {
         position: fixed;
         top: 0;
-        left: 21rem;  /* 强制避开左侧导航栏的宽度 */
-        right: 0;     /* 一直贴到屏幕右边 */
-        height: 65px; /* 固定高度 */
+        /* 默认侧边栏宽度约 21rem，这里让蓝条从侧边栏右侧开始 */
+        left: 21rem; 
+        right: 0;
+        height: 65px;
         z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
         color: white;
@@ -36,7 +36,15 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        /* 侧边栏折叠时，蓝条自动拉伸 */
+        transition: left 0.3s ease;
     }
+    
+    /* 4. 适配：当侧边栏折叠（隐藏）时，蓝条贴边 */
+    section[data-testid="stSidebar"][aria-expanded="false"] + div .global-fixed-header {
+        left: 0 !important;
+    }
+    
     .global-fixed-header h1 {
         color: white !important;
         margin: 0;
@@ -44,7 +52,7 @@ st.markdown("""
         font-weight: 600;
     }
     
-    /* 4. 给右侧主内容区留出顶部空间，防止第一行字被蓝条挡住 */
+    /* 5. 给主内容区留出顶部空间，防止被蓝条挡住 */
     .block-container {
         padding-top: 5.5rem !important;
     }
