@@ -11,19 +11,23 @@ st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wi
 # 注入全局 CSS 样式
 st.markdown("""
 <style>
+    /* 使用 sticky 让头部固定在顶部，并提高 z-index 防止被遮挡 */
     .main-title-container {
+        position: sticky;
+        top: 0;
+        z-index: 9999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
-        padding: 20px 30px;
-        border-radius: 10px;
+        padding: 15px 30px;
+        border-radius: 0 0 10px 10px; /* 底部保留圆角 */
         margin-bottom: 25px;
         color: white;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
     .main-title-container h1 {
         color: white !important;
         margin: 0;
-        font-size: 2.2rem;
+        font-size: 1.8rem; /* 稍微缩小一点，防止占空间太多 */
     }
 </style>
 """, unsafe_allow_html=True)
@@ -49,6 +53,7 @@ init_db()
 
 # ================= 侧边栏 =================
 st.sidebar.header("功能导航")
+# 修改点：导航名称直接叫“会议室申请”
 menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 通知模板生成", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
 
 st.sidebar.markdown("---")
@@ -57,7 +62,8 @@ api_key = st.sidebar.text_input("DeepSeek API Key", type="password", help="填�
 
 # ================= 功能一：会议室申请 =================
 if menu == "1. 会议室申请":
-    st.header("会议室申请与占用查看")
+    # 修改点：去掉“与占用查看”
+    st.header("会议室申请")
     col1, col2 = st.columns([1, 1.5])
     
     with col1:
@@ -96,7 +102,8 @@ if menu == "1. 会议室申请":
                 st.rerun()
 
     with col2:
-        st.subheader("📅 全部会议预约情况")
+        # 修改点：直接叫“会议室预约情况”
+        st.subheader("📅 会议室预约情况")
         
         today = datetime.now().date()
         default_start = today - timedelta(days=today.weekday())
@@ -191,7 +198,6 @@ elif menu == "2. 通知模板生成":
             w_recorder = st.text_input("会议记录人", "董哲源")
             w_date_sign = st.text_input("落款日期", "2026年1月17日")
             
-        # 修正为空格分隔
         w_attend = st.text_area("参会人员 (使用空格分隔)", "游 平 武志涛 潘 政 张中辉 韦永刚 张江峰 贾卫军 米美光", height=68)
             
         w_agenda = st.text_area("会议议程 (一行一项，无需输入序号)", "计划经营部对《进度结算指引》进行二次宣贯。\n地上EPC项目部汇报相关情况。\n地下EPC#1标段项目部汇报相关情况。\n地下EPC#2标段项目部汇报相关情况。\n各方就年前结算计划及资金需求进行讨论。\n领导总结发言。", height=200)
@@ -213,34 +219,47 @@ elif menu == "2. 通知模板生成":
             p_company = doc.add_paragraph()
             p_company.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p_company.paragraph_format.space_after = Pt(0) 
+            p_company.paragraph_format.space_before = Pt(0) 
             run_c = p_company.add_run(w_company)
             run_c.font.name = '黑体'
             run_c._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
             run_c.font.size = Pt(18) 
+            run_c.bold = True 
             
             p_title = doc.add_paragraph()
             p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_title.paragraph_format.space_after = Pt(0)
             p_title.paragraph_format.space_before = Pt(0)
             run_t = p_title.add_run(w_title)
             run_t.font.name = '黑体'
             run_t._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
             run_t.font.size = Pt(16)
-            run_t.bold = True
+            run_t.bold = True 
             
-            doc.add_paragraph() # 空行
+            doc.add_paragraph() 
             
-            # 辅助函数
+            # 辅助函数：带黑体加粗标签 + 正文 + 悬挂缩进的段落
             def add_info_line(label, content):
                 p = doc.add_paragraph()
-                p.paragraph_format.line_spacing = 1.5
+                p.paragraph_format.line_spacing = 1.5 
+                p.paragraph_format.space_after = Pt(0) 
+                p.paragraph_format.space_before = Pt(0)
+                
+                p.paragraph_format.first_line_indent = Inches(-1.2) 
+                p.paragraph_format.left_indent = Inches(1.2) 
+
                 run_label = p.add_run(label)
                 run_label.font.name = '黑体'
                 run_label._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
                 run_label.font.size = Pt(14)
+                run_label.bold = True
                 
                 clean_content = content.strip()
                 run_content = p.add_run(clean_content)
+                run_content.font.name = '仿宋_GB2312'
+                run_content._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
                 run_content.font.size = Pt(14)
+                run_content.bold = False
                 return p
 
             # --- 会议基础信息 ---
@@ -253,8 +272,10 @@ elif menu == "2. 通知模板生成":
             add_info_line("会议记录：", w_recorder)
                 
             # --- 会议议程 ---
+            doc.add_paragraph() 
             p_agenda_title = doc.add_paragraph()
             p_agenda_title.paragraph_format.line_spacing = 1.5
+            p_agenda_title.paragraph_format.space_after = Pt(0)
             run_ag = p_agenda_title.add_run("会议议程：")
             run_ag.font.name = '黑体'
             run_ag._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
@@ -267,11 +288,15 @@ elif menu == "2. 通知模板生成":
             for i, item in enumerate(valid_agenda_items):
                 p = doc.add_paragraph()
                 p.paragraph_format.line_spacing = 1.5
+                p.paragraph_format.space_after = Pt(0)
                 p.paragraph_format.left_indent = Inches(0.5) 
                 
                 num_str = chinese_nums[i] if i < len(chinese_nums) else str(i+1)
                 run_item = p.add_run(f"（{num_str}）{item}")
+                run_item.font.name = '仿宋_GB2312'
+                run_item._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
                 run_item.font.size = Pt(14)
+                run_item.bold = False
                     
             doc.add_paragraph() 
             doc.add_paragraph() 
@@ -280,14 +305,22 @@ elif menu == "2. 通知模板生成":
             p_sign_company = doc.add_paragraph()
             p_sign_company.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             p_sign_company.paragraph_format.line_spacing = 1.5
+            p_sign_company.paragraph_format.space_after = Pt(0)
             run_sc = p_sign_company.add_run(w_company)
+            run_sc.font.name = '仿宋_GB2312'
+            run_sc._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
             run_sc.font.size = Pt(14)
+            run_sc.bold = False
             
             p_sign_date = doc.add_paragraph()
             p_sign_date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             p_sign_date.paragraph_format.line_spacing = 1.5
+            p_sign_date.paragraph_format.space_after = Pt(0)
             run_sd = p_sign_date.add_run(w_date_sign)
+            run_sd.font.name = '仿宋_GB2312'
+            run_sd._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
             run_sd.font.size = Pt(14)
+            run_sd.bold = False
 
             # 保存
             doc_io = io.BytesIO()
