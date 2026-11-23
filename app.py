@@ -8,59 +8,6 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
 
-# 1. 利用 Streamlit 自带的 CSS 变量和布局特性
-st.markdown("""
-<style>
-    /* 隐藏掉默认的顶部空白留边 */
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
-    
-    /* 给主内容区顶部留出空间，防止被蓝条盖住 */
-    .block-container {
-        padding-top: 5rem !important;
-    }
-    
-    /* 终极解决方案：蓝条固定在主内容区顶部，宽度100% */
-    .right-fixed-header {
-        position: fixed;
-        top: 0;
-        /* 使用 calc 动态计算宽度，100% 减去侧边栏的宽度(21rem) */
-        left: calc(21rem); 
-        width: calc(100vw - 21rem);
-        height: 60px;
-        z-index: 99999;
-        background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.3s ease; /* 让伸缩过程平滑 */
-    }
-    
-    .right-fixed-header h1 {
-        color: white !important;
-        margin: 0;
-        font-size: 1.6rem;
-        font-weight: 600;
-    }
-
-    /* 监听侧边栏折叠状态：当侧边栏隐藏时，蓝条自动填满整个宽度 */
-    section[data-testid="stSidebar"][aria-expanded="false"] + div .right-fixed-header {
-        left: 0 !important;
-        width: 100vw !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# 渲染固定蓝条
-st.markdown("""
-<div class="right-fixed-header">
-    <h1>智能会议助手</h1>
-</div>
-""", unsafe_allow_html=True)
-
 # ================= 数据库初始化 =================
 def init_db():
     conn = sqlite3.connect('meeting.db')
@@ -80,6 +27,9 @@ menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 通知模板�
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ AI 引擎设置")
 api_key = st.sidebar.text_input("DeepSeek API Key", type="password", help="填入你自己的 API Key，仅在当前会话有效。")
+
+# ================= 顶部标题 =================
+st.title("📅 智能会议助手")
 
 # ================= 功能一：会议室申请 =================
 if menu == "1. 会议室申请":
