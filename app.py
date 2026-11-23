@@ -11,30 +11,34 @@ st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wi
 # 注入全局 CSS 样式
 st.markdown("""
 <style>
-    /* 使用 sticky 让头部固定在顶部，并提高 z-index 防止被遮挡 */
-    .main-title-container {
-        position: sticky;
+    /* 强制固定顶部横幅，横跨整个右侧 */
+    .fixed-header {
+        position: fixed;
         top: 0;
-        z-index: 9999;
+        left: 21rem; /* 避开左侧导航栏 */
+        right: 0;
+        z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
         padding: 15px 30px;
-        border-radius: 0 0 10px 10px; /* 底部保留圆角 */
-        margin-bottom: 25px;
         color: white;
         text-align: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    .main-title-container h1 {
+    .fixed-header h1 {
         color: white !important;
         margin: 0;
-        font-size: 1.8rem; /* 稍微缩小一点，防止占空间太多 */
+        font-size: 1.8rem;
+    }
+    /* 给主内容区顶部留出空间，防止被固定标题挡住 */
+    .block-container {
+        padding-top: 6rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 大标题
+# 渲染固定横幅
 st.markdown("""
-<div class="main-title-container">
+<div class="fixed-header">
     <h1>📅 智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
@@ -53,7 +57,6 @@ init_db()
 
 # ================= 侧边栏 =================
 st.sidebar.header("功能导航")
-# 修改点：导航名称直接叫“会议室申请”
 menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 通知模板生成", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
 
 st.sidebar.markdown("---")
@@ -62,7 +65,6 @@ api_key = st.sidebar.text_input("DeepSeek API Key", type="password", help="填�
 
 # ================= 功能一：会议室申请 =================
 if menu == "1. 会议室申请":
-    # 修改点：去掉“与占用查看”
     st.header("会议室申请")
     col1, col2 = st.columns([1, 1.5])
     
@@ -102,7 +104,6 @@ if menu == "1. 会议室申请":
                 st.rerun()
 
     with col2:
-        # 修改点：直接叫“会议室预约情况”
         st.subheader("📅 会议室预约情况")
         
         today = datetime.now().date()
@@ -184,7 +185,7 @@ elif menu == "2. 通知模板生成":
             st.text_area("👇 生成结果（可直接复制）", value=result, height=200)
 
     with tab2:
-        st.markdown("请填写会议信息。系统将自动按《通知模板》格式排版，完美对齐。")
+        st.markdown("请填写会议信息。系统将自动按《通知模板》格式排版。")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -198,22 +199,24 @@ elif menu == "2. 通知模板生成":
             w_recorder = st.text_input("会议记录人", "董哲源")
             w_date_sign = st.text_input("落款日期", "2026年1月17日")
             
-        w_attend = st.text_area("参会人员 (使用空格分隔)", "游 平 武志涛 潘 政 张中辉 韦永刚 张江峰 贾卫军 米美光", height=68)
+        # 这里去掉了原来的空格，让用户直接连着打
+        w_attend = st.text_area("参会人员", "游平 武志涛 潘政 张中辉 韦永刚 张江峰 贾卫军 米美光", height=68)
             
         w_agenda = st.text_area("会议议程 (一行一项，无需输入序号)", "计划经营部对《进度结算指引》进行二次宣贯。\n地上EPC项目部汇报相关情况。\n地下EPC#1标段项目部汇报相关情况。\n地下EPC#2标段项目部汇报相关情况。\n各方就年前结算计划及资金需求进行讨论。\n领导总结发言。", height=200)
 
         if st.button("✨ 生成标准公文 Word", type="primary"):
             from docx import Document
-            from docx.shared import Pt, Inches
+            from docx.shared import Pt, Inches, Cm
             from docx.enum.text import WD_ALIGN_PARAGRAPH
             from docx.oxml.ns import qn
             import io
             
             doc = Document()
             
-            # 1. 设置全局字体
+            # 全局默认字体为仿宋_GB2312，三号字（16磅）
             doc.styles['Normal'].font.name = '仿宋_GB2312'
             doc.styles['Normal']._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
+            doc.styles['Normal'].font.size = Pt(16)
 
             # --- 标题部分 ---
             p_company = doc.add_paragraph()
@@ -221,44 +224,44 @@ elif menu == "2. 通知模板生成":
             p_company.paragraph_format.space_after = Pt(0) 
             p_company.paragraph_format.space_before = Pt(0) 
             run_c = p_company.add_run(w_company)
-            run_c.font.name = '黑体'
-            run_c._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
-            run_c.font.size = Pt(18) 
-            run_c.bold = True 
+            run_c.font.name = '方正小标宋简体'
+            run_c._element.rPr.rFonts.set(qn('w:eastAsia'), '方正小标宋简体')
+            run_c.font.size = Pt(22) # 二号字
+            run_c.bold = False 
             
             p_title = doc.add_paragraph()
             p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p_title.paragraph_format.space_after = Pt(0)
             p_title.paragraph_format.space_before = Pt(0)
             run_t = p_title.add_run(w_title)
-            run_t.font.name = '黑体'
-            run_t._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
-            run_t.font.size = Pt(16)
-            run_t.bold = True 
+            run_t.font.name = '方正小标宋简体'
+            run_t._element.rPr.rFonts.set(qn('w:eastAsia'), '方正小标宋简体')
+            run_t.font.size = Pt(22) # 二号字
+            run_t.bold = False 
             
             doc.add_paragraph() 
             
-            # 辅助函数：带黑体加粗标签 + 正文 + 悬挂缩进的段落
+            # 辅助函数：制表符对齐法（完美解决换行）
             def add_info_line(label, content):
                 p = doc.add_paragraph()
                 p.paragraph_format.line_spacing = 1.5 
                 p.paragraph_format.space_after = Pt(0) 
                 p.paragraph_format.space_before = Pt(0)
                 
-                p.paragraph_format.first_line_indent = Inches(-1.2) 
-                p.paragraph_format.left_indent = Inches(1.2) 
-
-                run_label = p.add_run(label)
+                # 关键点：使用 Tab 键对齐
+                run_label = p.add_run(label + "\t")
                 run_label.font.name = '黑体'
                 run_label._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
-                run_label.font.size = Pt(14)
-                run_label.bold = True
+                run_label.font.size = Pt(16) # 三号字
+                run_label.bold = False
                 
-                clean_content = content.strip()
-                run_content = p.add_run(clean_content)
+                # 设置制表位在 2.5 厘米处，这样换行后会自动和上一行的名字对齐
+                p.paragraph_format.tab_stops.add_tab_stop(Cm(2.5))
+                
+                run_content = p.add_run(content.strip())
                 run_content.font.name = '仿宋_GB2312'
                 run_content._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
-                run_content.font.size = Pt(14)
+                run_content.font.size = Pt(16)
                 run_content.bold = False
                 return p
 
@@ -279,8 +282,8 @@ elif menu == "2. 通知模板生成":
             run_ag = p_agenda_title.add_run("会议议程：")
             run_ag.font.name = '黑体'
             run_ag._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
-            run_ag.font.size = Pt(14)
-            run_ag.bold = True
+            run_ag.font.size = Pt(16)
+            run_ag.bold = False
             
             chinese_nums = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"]
             valid_agenda_items = [item.strip() for item in w_agenda.split('\n') if item.strip()]
@@ -289,13 +292,13 @@ elif menu == "2. 通知模板生成":
                 p = doc.add_paragraph()
                 p.paragraph_format.line_spacing = 1.5
                 p.paragraph_format.space_after = Pt(0)
-                p.paragraph_format.left_indent = Inches(0.5) 
+                p.paragraph_format.left_indent = Cm(1.5) # 议程缩进
                 
                 num_str = chinese_nums[i] if i < len(chinese_nums) else str(i+1)
                 run_item = p.add_run(f"（{num_str}）{item}")
                 run_item.font.name = '仿宋_GB2312'
                 run_item._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
-                run_item.font.size = Pt(14)
+                run_item.font.size = Pt(16)
                 run_item.bold = False
                     
             doc.add_paragraph() 
@@ -309,7 +312,7 @@ elif menu == "2. 通知模板生成":
             run_sc = p_sign_company.add_run(w_company)
             run_sc.font.name = '仿宋_GB2312'
             run_sc._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
-            run_sc.font.size = Pt(14)
+            run_sc.font.size = Pt(16)
             run_sc.bold = False
             
             p_sign_date = doc.add_paragraph()
@@ -319,7 +322,7 @@ elif menu == "2. 通知模板生成":
             run_sd = p_sign_date.add_run(w_date_sign)
             run_sd.font.name = '仿宋_GB2312'
             run_sd._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
-            run_sd.font.size = Pt(14)
+            run_sd.font.size = Pt(16)
             run_sd.bold = False
 
             # 保存
@@ -327,7 +330,7 @@ elif menu == "2. 通知模板生成":
             doc.save(doc_io)
             doc_io.seek(0)
 
-            st.success("Word 文档已生成！排版已严格对齐模板格式。")
+            st.success("Word 文档已生成！排版已严格按二号/三号字体及制表符对齐。")
             st.download_button(
                 label="📥 下载会议通知 (.docx)",
                 data=doc_io,
