@@ -8,6 +8,56 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
 
+# 注入全局 CSS 样式
+st.markdown("""
+<style>
+    /* 1. 隐藏默认的顶部留白，但不影响折叠按钮 */
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+    }
+    
+    /* 2. 蓝条样式：固定在右侧主内容区顶部，高度与原生顶栏齐平 */
+    .right-fixed-header {
+        position: fixed;
+        top: 0;
+        left: 21rem; /* 侧边栏展开时的默认宽度 */
+        right: 0;
+        height: 60px;
+        z-index: 99999;
+        background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .right-fixed-header h1 {
+        color: white !important;
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 600;
+    }
+
+    /* 3. 监听侧边栏折叠状态：折叠时蓝条自动贴边 */
+    section[data-testid="stSidebar"][aria-expanded="false"] + div .right-fixed-header {
+        left: 0 !important;
+        transition: left 0.3s ease;
+    }
+
+    /* 4. 给主内容区留出空间，避免被蓝条挡住 */
+    .block-container {
+        padding-top: 5rem !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 渲染固定蓝条
+st.markdown("""
+<div class="right-fixed-header">
+    <h1>智能会议助手</h1>
+</div>
+""", unsafe_allow_html=True)
+
 # ================= 数据库初始化 =================
 def init_db():
     conn = sqlite3.connect('meeting.db')
@@ -27,9 +77,6 @@ menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 通知模板�
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ AI 引擎设置")
 api_key = st.sidebar.text_input("DeepSeek API Key", type="password", help="填入你自己的 API Key，仅在当前会话有效。")
-
-# ================= 顶部标题 =================
-st.title("📅 智能会议助手")
 
 # ================= 功能一：会议室申请 =================
 if menu == "1. 会议室申请":
