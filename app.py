@@ -177,25 +177,26 @@ elif menu == "2. 通知模板生成":
             st.text_area("👇 生成结果（可直接复制）", value=result, height=200)
 
     with tab2:
-        st.markdown("请填写会议信息。系统将自动按公文格式排版，完美对齐。")
-        
-        w_company = st.text_input("公司名称", "陕西秦耀储能科技有限公司")
-        w_title = st.text_input("会议名称", "2026年11月预算管理委员会月度会议议程")
+        st.markdown("请填写会议信息。系统将自动按《通知模板》格式排版，完美对齐。")
         
         col1, col2 = st.columns(2)
         with col1:
-            w_time = st.text_input("会议时间", "2026年11月4日（星期三）10:00")
-            w_room = st.text_input("会议地点", "公司大会议室")
-            w_tx_id = st.text_input("腾讯会议号 (选填)", "176-654-355")
-            w_host = st.text_input("主持人", "总会计师 靳一飞")
+            w_company = st.text_input("公司名称", "陕西秦耀储能科技有限公司")
+            w_title = st.text_input("会议名称", "EPC 结算计划及资金需求讨论会")
+            w_time = st.text_input("会议时间", "2026年1月19日（星期一）下午18:30")
+            w_room = st.text_input("会议地点", "项目公司大会议室")
+            w_tx_id = st.text_input("线上会议（腾讯会议号）", "522-651-848")
         with col2:
-            w_attend = st.text_area("参会人员 (按图片换行)", "王军 游平 武志涛 潘政 靳一飞 程少振\n蒋思 叶慧蓉", height=68)
-            w_guest = st.text_area("列席人员 (按图片换行)", "崔鑫 韦永刚 张维维 焦梦雄 周海 刘心宇\n史乐 孙文婷 赵守华", height=68)
-            w_date_sign = st.text_input("落款日期", "2026年11月3日")
+            w_host = st.text_input("主持人", "张维纬")
+            w_recorder = st.text_input("会议记录人", "董哲源")
+            w_date_sign = st.text_input("落款日期", "2026年1月17日")
             
-        w_agenda = st.text_area("会议议程 (一行一项)", "（一）财务资产部通报10月资金计划执行情况。\n（二）审议各部门上报的11月资金计划。\n（三）审议2027年全面预算“一上”方案。\n（四）预算管理委员会主任王军总结。", height=150)
+        # 修正为空格分隔
+        w_attend = st.text_area("参会人员 (使用空格分隔)", "游 平 武志涛 潘 政 张中辉 韦永刚 张江峰 贾卫军 米美光", height=68)
+            
+        w_agenda = st.text_area("会议议程 (一行一项，无需输入序号)", "计划经营部对《进度结算指引》进行二次宣贯。\n地上EPC项目部汇报相关情况。\n地下EPC#1标段项目部汇报相关情况。\n地下EPC#2标段项目部汇报相关情况。\n各方就年前结算计划及资金需求进行讨论。\n领导总结发言。", height=200)
 
-        if st.button("✨ 生成 Word 议程文档", type="primary"):
+        if st.button("✨ 生成标准公文 Word", type="primary"):
             from docx import Document
             from docx.shared import Pt, Inches
             from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -204,30 +205,32 @@ elif menu == "2. 通知模板生成":
             
             doc = Document()
             
-            # 设置默认字体
+            # 1. 设置全局字体
             doc.styles['Normal'].font.name = '仿宋_GB2312'
             doc.styles['Normal']._element.rPr.rFonts.set(qn('w:eastAsia'), '仿宋_GB2312')
 
-            # 1. 标题
+            # --- 标题部分 ---
             p_company = doc.add_paragraph()
             p_company.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_company.paragraph_format.space_after = Pt(0) 
             run_c = p_company.add_run(w_company)
             run_c.font.name = '黑体'
             run_c._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
-            run_c.font.size = Pt(16)
+            run_c.font.size = Pt(18) 
             
             p_title = doc.add_paragraph()
             p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_title.paragraph_format.space_before = Pt(0)
             run_t = p_title.add_run(w_title)
             run_t.font.name = '黑体'
             run_t._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
-            run_t.font.size = Pt(18)
+            run_t.font.size = Pt(16)
             run_t.bold = True
             
-            doc.add_paragraph()
+            doc.add_paragraph() # 空行
             
-            # 辅助排版函数
-            def add_hanging_paragraph(label, content):
+            # 辅助函数
+            def add_info_line(label, content):
                 p = doc.add_paragraph()
                 p.paragraph_format.line_spacing = 1.5
                 run_label = p.add_run(label)
@@ -235,26 +238,21 @@ elif menu == "2. 通知模板生成":
                 run_label._element.rPr.rFonts.set(qn('w:eastAsia'), '黑体')
                 run_label.font.size = Pt(14)
                 
-                lines = content.strip().split('\n')
-                run_content = p.add_run(lines[0])
+                clean_content = content.strip()
+                run_content = p.add_run(clean_content)
                 run_content.font.size = Pt(14)
-                for line in lines[1:]:
-                    run_content.add_break()
-                    run_content.add_text("　　　　　　" + line)
                 return p
 
-            # 2. 信息
-            add_hanging_paragraph("会议时间：", w_time)
-            room_content = w_room
-            if w_tx_id:
-                room_content += f"\n#腾讯会议：{w_tx_id}"
-            add_hanging_paragraph("会议地点：", room_content)
-            add_hanging_paragraph("主 持 人：", w_host)
-            add_hanging_paragraph("参会人员：", w_attend)
-            if w_guest.strip():
-                add_hanging_paragraph("列席人员：", w_guest)
+            # --- 会议基础信息 ---
+            add_info_line("会议时间：", w_time)
+            add_info_line("会议地点：", w_room)
+            if w_tx_id.strip():
+                add_info_line("线上会议：", f"腾讯会议 {w_tx_id.strip()}")
+            add_info_line("主持人：", w_host)
+            add_info_line("参会人员：", w_attend)
+            add_info_line("会议记录：", w_recorder)
                 
-            # 3. 议程
+            # --- 会议议程 ---
             p_agenda_title = doc.add_paragraph()
             p_agenda_title.paragraph_format.line_spacing = 1.5
             run_ag = p_agenda_title.add_run("会议议程：")
@@ -263,35 +261,42 @@ elif menu == "2. 通知模板生成":
             run_ag.font.size = Pt(14)
             run_ag.bold = True
             
-            for item in w_agenda.split('\n'):
-                if item.strip():
-                    p = doc.add_paragraph()
-                    p.paragraph_format.line_spacing = 1.5
-                    p.paragraph_format.left_indent = Inches(0.5)
-                    run_item = p.add_run(item)
-                    run_item.font.size = Pt(14)
+            chinese_nums = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"]
+            valid_agenda_items = [item.strip() for item in w_agenda.split('\n') if item.strip()]
+            
+            for i, item in enumerate(valid_agenda_items):
+                p = doc.add_paragraph()
+                p.paragraph_format.line_spacing = 1.5
+                p.paragraph_format.left_indent = Inches(0.5) 
+                
+                num_str = chinese_nums[i] if i < len(chinese_nums) else str(i+1)
+                run_item = p.add_run(f"（{num_str}）{item}")
+                run_item.font.size = Pt(14)
                     
             doc.add_paragraph() 
             doc.add_paragraph() 
             
-            # 4. 落款
+            # --- 落款 ---
             p_sign_company = doc.add_paragraph()
             p_sign_company.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            p_sign_company.paragraph_format.line_spacing = 1.5
             run_sc = p_sign_company.add_run(w_company)
             run_sc.font.size = Pt(14)
             
             p_sign_date = doc.add_paragraph()
             p_sign_date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            p_sign_date.paragraph_format.line_spacing = 1.5
             run_sd = p_sign_date.add_run(w_date_sign)
             run_sd.font.size = Pt(14)
 
+            # 保存
             doc_io = io.BytesIO()
             doc.save(doc_io)
             doc_io.seek(0)
 
-            st.success("Word 议程已生成！排版已按标准公文格式对齐。")
+            st.success("Word 文档已生成！排版已严格对齐模板格式。")
             st.download_button(
-                label="📥 下载会议议程 (.docx)",
+                label="📥 下载会议通知 (.docx)",
                 data=doc_io,
                 file_name=f"{w_title}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
