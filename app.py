@@ -8,58 +8,49 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
 
-# 注入全局 CSS 样式
+# 原生 CSS 调整：只隐藏默认顶栏，给主内容区留出空间，绝不改动侧边栏位置
 st.markdown("""
 <style>
-    /* 1. 隐藏原生顶栏 */
+    /* 隐藏原生顶部的白条 */
     header[data-testid="stHeader"] {
         display: none !important;
     }
     
-    /* 2. 左侧导航栏修复，防止被盖住 */
-    section[data-testid="stSidebar"] {
-        z-index: 9999998 !important;
+    /* 给右侧主内容区留出顶部 65px 空间，防止被蓝条挡住 */
+    .block-container {
+        padding-top: 5rem !important;
     }
 
-    /* 3. 右侧主内容区留出顶部空间 */
-    .main .block-container {
-        padding-top: 5.5rem !important;
-    }
-
-    /* 4. 蓝条基础样式：避开左侧 21rem 的导航栏 */
-    .dynamic-header {
+    /* 蓝条样式：悬浮、固定 */
+    .top-banner {
         position: fixed;
         top: 0;
-        left: 21rem; /* 对应侧边栏默认宽度 */
-        right: 0;
+        /* 关键点：不使用 left: 0 或 21rem，而是让它在主内容区居中 */
+        left: 50%;
+        transform: translateX(-50%);
+        /* 宽度自适应：默认占 100%，如果被侧边栏挤压会自动适应 */
+        width: 100%;
         height: 60px;
-        z-index: 9999999;
+        z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: left 0.3s ease; /* 关键：添加平滑过渡动画 */
     }
-    
-    .dynamic-header h1 {
+    .top-banner h1 {
         color: white !important;
         margin: 0;
         font-size: 1.6rem;
         font-weight: 600;
     }
-
-    /* 5. 核心黑科技：当侧边栏隐藏时，蓝条向左拉伸到 0 */
-    section[data-testid="stSidebar"][aria-expanded="false"] + div .dynamic-header {
-        left: 0 !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染固定蓝条
+# 渲染固定蓝条（放在页面最前面）
 st.markdown("""
-<div class="dynamic-header">
+<div class="top-banner">
     <h1>智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
