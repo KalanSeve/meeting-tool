@@ -8,20 +8,44 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
 
-# 注入全局 CSS 样式 (终极完美版)
+# 注入全局 CSS 样式 (最终完美兼容版)
 st.markdown("""
 <style>
-    /* 1. 隐藏默认的顶部留白，给蓝条腾地方 */
+    /* 1. 隐藏原生顶栏 */
     header[data-testid="stHeader"] {
         display: none !important;
     }
     
-    /* 2. 蓝条绝对霸占最顶部 100% 宽度，层级极高 */
-    .top-global-bar {
+    /* 2. 强制把 Streamlit 原生侧边栏拉回来，固定在左侧，层级拉满 */
+    section[data-testid="stSidebar"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        width: 21rem !important;
+        z-index: 9999998 !important; 
+        background-color: #f8f9fa;
+        border-right: 1px solid #e0e0e0;
+    }
+    
+    /* 侧边栏折叠按钮（>>）位置微调 */
+    button[data-testid="stSidebarCollapseButton"] {
+        top: 15px !important;
+        z-index: 9999999 !important;
+    }
+
+    /* 3. 右侧主内容区给侧边栏让出空间 */
+    .main .block-container {
+        padding-top: 5.5rem !important;
+        padding-left: 23rem !important; 
+    }
+
+    /* 4. 蓝条：完美覆盖右侧，宽度计算避开侧边栏 */
+    .right-fixed-header {
         position: fixed;
         top: 0;
-        left: 0;
-        width: 100vw;
+        left: 21rem; /* 刚好卡在侧边栏右边 */
+        right: 0;
         height: 60px;
         z-index: 9999999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
@@ -29,37 +53,42 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    .top-global-bar h1 {
+    .right-fixed-header h1 {
         color: white !important;
         margin: 0;
         font-size: 1.6rem;
         font-weight: 600;
     }
 
-    /* 3. 侧边栏强行往下压 60px，给蓝条让路，并保持高交互层级 */
-    section[data-testid="stSidebar"] {
-        top: 60px !important; 
-        height: calc(100vh - 60px) !important;
-        z-index: 999998 !important; 
-    }
-    
-    /* 4. 折叠按钮（>>）往下挪，防止被蓝条边缘挡住 */
-    button[data-testid="stSidebarCollapseButton"] {
-        margin-top: 60px !important; 
+    /* 5. 巧妙利用伪元素在侧边栏上方补齐 60px 的留白区，防白边/遮挡 */
+    section[data-testid="stSidebar"]::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: #f8f9fa; /* 颜色和侧边栏一致 */
+        border-bottom: 1px solid #e0e0e0;
+        z-index: 9999997;
     }
 
-    /* 5. 右侧主内容区也往下挪，防止内容被蓝条覆盖 */
-    .block-container {
-        padding-top: 5rem !important;
+    /* 6. 当侧边栏折叠时，蓝条向左延展填满屏幕 */
+    section[data-testid="stSidebar"][aria-expanded="false"] + div .right-fixed-header {
+        left: 0 !important;
+        transition: left 0.3s ease;
+    }
+    section[data-testid="stSidebar"][aria-expanded="false"]::before {
+        display: none; /* 折叠时隐藏侧边栏顶部补丁 */
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染顶部绝对固定蓝条
+# 渲染固定蓝条
 st.markdown("""
-<div class="top-global-bar">
+<div class="right-fixed-header">
     <h1>智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
