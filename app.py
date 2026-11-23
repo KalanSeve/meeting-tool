@@ -11,40 +11,42 @@ st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wi
 # 注入全局 CSS 样式
 st.markdown("""
 <style>
-    /* 1. 隐藏自带的顶部菜单 */
+    /* 1. 隐藏 Streamlit 默认的顶部空白 */
     header[data-testid="stHeader"] {
         display: none !important;
     }
     
-    /* 2. 给主内容区留出顶部空间，防止被固定标题遮挡 */
-    .block-container {
-        padding-top: 5rem !important;
-    }
-    
-    /* 3. 强制把侧边栏层级提到最高，不被蓝条挡住 */
+    /* 2. 强制左侧侧边栏置顶显示，不被任何东西遮挡 */
     section[data-testid="stSidebar"] {
-        z-index: 9999999 !important; 
+        z-index: 999999 !important;
         background-color: #f8f9fa;
     }
     
-    /* 4. 全屏蓝条，层级稍微低于侧边栏 */
+    /* 3. 固定蓝条：绝对定位，从左边侧边栏的右侧开始，一直拉伸到最右边 */
     .global-fixed-header {
         position: fixed;
         top: 0;
-        left: 0;
-        width: 100vw;
+        left: 21rem;  /* 强制避开左侧导航栏的宽度 */
+        right: 0;     /* 一直贴到屏幕右边 */
+        height: 65px; /* 固定高度 */
         z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
-        padding: 16px 0;
         color: white;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     .global-fixed-header h1 {
         color: white !important;
         margin: 0;
         font-size: 1.8rem;
         font-weight: 600;
+    }
+    
+    /* 4. 给右侧主内容区留出顶部空间，防止第一行字被蓝条挡住 */
+    .block-container {
+        padding-top: 5.5rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
