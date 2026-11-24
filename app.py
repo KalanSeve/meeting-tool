@@ -8,25 +8,19 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="AI 智能会议助手", page_icon="📅", layout="wide")
 
-# ================= 顶部固定蓝条 CSS =================
+# 注入简易 CSS，只负责让蓝条固定
 st.markdown("""
 <style>
-    /* 隐藏原生顶栏 */
+    /* 隐藏原生顶部白边 */
     header[data-testid="stHeader"] {
         display: none !important;
     }
-    
-    /* 给主内容区留出顶部空间 */
-    .block-container {
-        padding-top: 5rem !important;
-    }
-
-    /* 蓝色渐变横幅：固定在最上方，避开左侧导航栏 */
-    .ai-banner {
+    /* 固定右侧的蓝条 */
+    .fixed-header-right {
         position: fixed;
         top: 0;
-        left: 21rem; /* 避开侧边栏宽度 */
-        width: calc(100vw - 21rem); /* 宽度自适应 */
+        left: 21rem; /* 避开左侧 */
+        width: calc(100vw - 21rem); /* 占据右侧剩余宽度 */
         height: 60px;
         z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
@@ -35,27 +29,23 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.3s ease; /* 平滑过渡 */
     }
-    
-    .ai-banner h1 {
+    .fixed-header-right h1 {
         color: white !important;
         margin: 0;
         font-size: 1.6rem;
         font-weight: 600;
     }
-
-    /* 核心：监听侧边栏折叠，动态调整宽度 */
-    section[data-testid="stSidebar"][aria-expanded="false"] + div .ai-banner {
-        left: 0 !important;
-        width: 100vw !important;
+    /* 给主内容区留出顶部空间 */
+    .main .block-container {
+        padding-top: 5rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染固定横幅
+# 渲染固定蓝条
 st.markdown("""
-<div class="ai-banner">
+<div class="fixed-header-right">
     <h1>AI 智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
