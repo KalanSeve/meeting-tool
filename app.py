@@ -8,19 +8,34 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="AI 智能会议助手", page_icon="📅", layout="wide")
 
-# 注入简易 CSS，只负责让蓝条固定
+# ================= CSS 终极修复 =================
 st.markdown("""
 <style>
-    /* 隐藏原生顶部白边 */
+    /* 1. 隐藏原生顶部白条 */
     header[data-testid="stHeader"] {
         display: none !important;
     }
-    /* 固定右侧的蓝条 */
+    
+    /* 2. 强制侧边栏必须有 336px 的宽度，并置顶 */
+    section[data-testid="stSidebar"] {
+        width: 336px !important;
+        min-width: 336px !important;
+        max-width: 336px !important;
+        z-index: 999 !important;
+    }
+
+    /* 3. 右侧主内容区强行把左侧空出 336px */
+    .main .block-container {
+        padding-top: 5.5rem !important;
+        padding-left: 2rem !important;
+    }
+
+    /* 4. 固定蓝条：左侧避开 336px，右侧自动延伸 */
     .fixed-header-right {
         position: fixed;
         top: 0;
-        left: 21rem; /* 避开左侧 */
-        width: calc(100vw - 21rem); /* 占据右侧剩余宽度 */
+        left: 336px; 
+        right: 0;
         height: 60px;
         z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
@@ -36,9 +51,10 @@ st.markdown("""
         font-size: 1.6rem;
         font-weight: 600;
     }
-    /* 给主内容区留出顶部空间 */
-    .main .block-container {
-        padding-top: 5rem !important;
+
+    /* 5. 重点：当侧边栏折叠时，蓝条瞬间填满 */
+    section[data-testid="stSidebar"][aria-expanded="false"] + div .fixed-header-right {
+        left: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
