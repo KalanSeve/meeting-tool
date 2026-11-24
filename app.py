@@ -8,33 +8,19 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="AI 智能会议助手", page_icon="📅", layout="wide")
 
-# ================= CSS 终极修复 =================
+# 注入全局 CSS 样式 (结合旧版完美兼容特性)
 st.markdown("""
 <style>
-    /* 1. 隐藏原生顶部白条 */
+    /* 1. 核心：只把原生顶栏变透明，千万不要 display: none，否则折叠按钮会消失 */
     header[data-testid="stHeader"] {
-        display: none !important;
+        background-color: transparent !important;
     }
     
-    /* 2. 强制侧边栏必须有 336px 的宽度，并置顶 */
-    section[data-testid="stSidebar"] {
-        width: 336px !important;
-        min-width: 336px !important;
-        max-width: 336px !important;
-        z-index: 999 !important;
-    }
-
-    /* 3. 右侧主内容区强行把左侧空出 336px */
-    .main .block-container {
-        padding-top: 5.5rem !important;
-        padding-left: 2rem !important;
-    }
-
-    /* 4. 固定蓝条：左侧避开 336px，右侧自动延伸 */
-    .fixed-header-right {
+    /* 2. 蓝条样式：固定在右侧主内容区顶部，避开侧边栏 */
+    .right-fixed-header {
         position: fixed;
         top: 0;
-        left: 336px; 
+        left: 21rem; /* 侧边栏默认宽度 */
         right: 0;
         height: 60px;
         z-index: 99999;
@@ -45,23 +31,29 @@ st.markdown("""
         justify-content: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    .fixed-header-right h1 {
+    .right-fixed-header h1 {
         color: white !important;
         margin: 0;
         font-size: 1.6rem;
         font-weight: 600;
     }
 
-    /* 5. 重点：当侧边栏折叠时，蓝条瞬间填满 */
-    section[data-testid="stSidebar"][aria-expanded="false"] + div .fixed-header-right {
+    /* 3. 监听侧边栏折叠状态：折叠时蓝条自动贴边 */
+    section[data-testid="stSidebar"][aria-expanded="false"] + div .right-fixed-header {
         left: 0 !important;
+        transition: left 0.3s ease;
+    }
+
+    /* 4. 给主内容区留出空间，避免第一行被蓝条遮挡 */
+    .block-container {
+        padding-top: 5rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 渲染固定蓝条
+# 渲染固定蓝条 (加上 AI 字样)
 st.markdown("""
-<div class="fixed-header-right">
+<div class="right-fixed-header">
     <h1>AI 智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
