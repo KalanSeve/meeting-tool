@@ -6,57 +6,7 @@ import pandas as pd
 import io
 
 # ================= 页面基础设置 =================
-st.set_page_config(page_title="智能会议助手", page_icon="📅", layout="wide")
-
-# 注入全局 CSS 样式
-st.markdown("""
-<style>
-    /* 1. 隐藏默认的顶部留白，但不影响折叠按钮 */
-    header[data-testid="stHeader"] {
-        background-color: transparent !important;
-    }
-    
-    /* 2. 蓝条样式：固定在右侧主内容区顶部，高度与原生顶栏齐平 */
-    .right-fixed-header {
-        position: fixed;
-        top: 0;
-        left: 21rem; /* 侧边栏展开时的默认宽度 */
-        right: 0;
-        height: 60px;
-        z-index: 99999;
-        background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .right-fixed-header h1 {
-        color: white !important;
-        margin: 0;
-        font-size: 1.6rem;
-        font-weight: 600;
-    }
-
-    /* 3. 监听侧边栏折叠状态：折叠时蓝条自动贴边 */
-    section[data-testid="stSidebar"][aria-expanded="false"] + div .right-fixed-header {
-        left: 0 !important;
-        transition: left 0.3s ease;
-    }
-
-    /* 4. 给主内容区留出空间，避免被蓝条挡住 */
-    .block-container {
-        padding-top: 5rem !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# 渲染固定蓝条
-st.markdown("""
-<div class="right-fixed-header">
-    <h1>智能会议助手</h1>
-</div>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="AI 智能会议助手", page_icon="📅", layout="wide")
 
 # ================= 数据库初始化 =================
 def init_db():
@@ -72,19 +22,25 @@ init_db()
 
 # ================= 侧边栏 =================
 st.sidebar.header("功能导航")
-menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 通知模板生成", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
+# 修改点：导航2名称改变
+menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 会议通知", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ AI 引擎设置")
 api_key = st.sidebar.text_input("DeepSeek API Key", type="password", help="填入你自己的 API Key，仅在当前会话有效。")
 
+# ================= 顶部标题 =================
+# 修改点：前面加上了 AI
+st.title("📅 AI 智能会议助手")
+
 # ================= 功能一：会议室申请 =================
 if menu == "1. 会议室申请":
-    st.header("会议室申请")
+    # 修改点：拉开视觉层级
+    st.markdown("## 📌 会议室申请管理")
     col1, col2 = st.columns([1, 1.5])
     
     with col1:
-        st.subheader("📝 申请会议室")
+        st.markdown("### 📝 填写申请信息")
         room = st.selectbox("选择会议室", ["大会议室", "小会议室", "党建会议室", "会客厅"])
         title = st.text_input("会议名称")
         
@@ -119,7 +75,7 @@ if menu == "1. 会议室申请":
                 st.rerun()
 
     with col2:
-        st.subheader("📅 会议室预约情况")
+        st.markdown("### 📅 会议室预约情况")
         
         today = datetime.now().date()
         default_start = today - timedelta(days=today.weekday())
@@ -174,9 +130,10 @@ if menu == "1. 会议室申请":
             st.info(f"在 {search_start} 至 {search_end} 期间，暂无会议安排。")
 
 
-# ================= 功能二：通知模板生成 =================
-elif menu == "2. 通知模板生成":
-    st.header("会议通知与议程生成器")
+# ================= 功能二：会议通知 =================
+elif menu == "2. 会议通知":
+    # 修改点：页面标题统一
+    st.markdown("## 📌 会议通知与议程生成")
     
     tab1, tab2 = st.tabs(["📝 快速文本通知", "📄 正式会议议程 (导出Word)"])
     
@@ -346,7 +303,7 @@ elif menu == "2. 通知模板生成":
 
 # ================= 功能三：AI 纪要风格仿写 =================
 elif menu == "3. AI 纪要风格仿写":
-    st.header("AI 会议纪要风格仿写")
+    st.markdown("## 📌 AI 会议纪要风格仿写")
     st.markdown("输入**历史纪要**提供格式与语气参考，再输入**本次会议散乱要点**，AI 将为你生成结构一致、文风相符的纪要。")
     
     col1, col2 = st.columns(2)
@@ -387,15 +344,15 @@ elif menu == "3. AI 纪要风格仿写":
                     st.text_area("👇 生成的会议纪要", value=ai_result, height=300)
                     st.session_state['latest_minutes'] = ai_result
                     
-                    st.warning("⚠️ 人工审核卡点：由于大模型存在幻觉，请人工核对责任人、时间节点等关键事实，确认无误后方可正式发布。")
-                    st.info("💡 你可以复制上方文本，或者前往左侧【4. 决议事项与任务提取】自动生成待办表。")
+                    # 修改点：温和专业的提示语
+                    st.info("📌 温馨提示：AI 生成内容仅供参考，请结合实际会议情况核对关键信息后再行发布。")
                 except Exception as e:
                     st.error(f"调用失败，请检查 Key 或网络。错误信息：{e}")
 
 
 # ================= 功能四：决议事项提取 =================
 elif menu == "4. 决议事项与任务提取":
-    st.header("🎯 决议事项自动提取与任务跟踪")
+    st.markdown("## 📌 决议事项自动提取与任务跟踪")
     st.markdown("从会议纪要中自动识别**工作事项、责任人、完成时限**，生成标准待办清单。")
     
     default_text = st.session_state.get('latest_minutes', '')
@@ -408,9 +365,10 @@ elif menu == "4. 决议事项与任务提取":
             st.warning("请提供纪要内容。")
         else:
             with st.spinner("AI 正在扮演项目经理，识别关键任务..."):
+                # 修改点：过滤未定时间的任务
                 prompt = f"""你是一个专业的项目管理助手。请阅读以下会议纪要，提取出所有的“工作事项/任务”。
 请务必以纯 CSV 格式输出（第一行是表头），包含四列：任务事项, 责任人/部门, 完成时限, 具体要求。
-如果纪要中没有明确责任人，请填“未指定”；没有明确时间，请填“待定”。
+请特别注意：只提取有明确时间节点（如“5月10日”、“近日”、“按节点要求”）的任务。如果纪要中没有明确时间，请直接忽略该项任务，不要输出。
 不要输出任何多余的解释，只输出 CSV 文本。
 
 【会议纪要】：
@@ -433,13 +391,58 @@ elif menu == "4. 决议事项与任务提取":
                     st.success("提取成功！已生成任务跟踪表。")
                     st.dataframe(df, use_container_width=True)
                     
-                    csv_data = df.to_csv(index=False).encode('utf-8-sig')
+                    # 修改点：生成带格式的 Excel
+                    excel_io = io.BytesIO()
+                    with pd.ExcelWriter(excel_io, engine='xlsxwriter') as writer:
+                        df.to_excel(writer, index=False, sheet_name='任务跟踪表')
+                        
+                        workbook = writer.book
+                        worksheet = writer.sheets['任务跟踪表']
+                        
+                        # 定义格式：表头蓝底白字加粗
+                        header_format = workbook.add_format({
+                            'bold': True,
+                            'text_wrap': True,
+                            'valign': 'vcenter',
+                            'align': 'center',
+                            'fg_color': '#3B82F6', # 蓝色底
+                            'font_color': 'white', # 白字
+                            'border': 1,
+                            'border_color': '#000000'
+                        })
+                        
+                        # 定义格式：单元格自动换行，左对齐，边框
+                        cell_format = workbook.add_format({
+                            'text_wrap': True,
+                            'valign': 'vcenter',
+                            'align': 'left',
+                            'border': 1,
+                            'border_color': '#D3D3D3'
+                        })
+                        
+                        # 写入表头
+                        for col_num, value in enumerate(df.columns.values):
+                            worksheet.write(0, col_num, value, header_format)
+                            
+                        # 写入内容并调整列宽
+                        for row_num in range(1, len(df) + 1):
+                            for col_num, value in enumerate(df.iloc[row_num-1]):
+                                worksheet.write(row_num, col_num, value, cell_format)
+                                
+                        worksheet.set_column('A:A', 30) # 任务事项列宽
+                        worksheet.set_column('B:B', 15) # 责任人列宽
+                        worksheet.set_column('C:C', 15) # 完成时限列宽
+                        worksheet.set_column('D:D', 40) # 具体要求列宽
+
+                    excel_data = excel_io.getvalue()
+                    
+                    # 修改点：底部提示文案
                     st.download_button(
-                        label="📥 下载任务清单 (CSV)",
-                        data=csv_data,
-                        file_name='会议任务清单.csv',
-                        mime='text/csv',
+                        label="📥 下载精美任务清单 (Excel)",
+                        data=excel_data,
+                        file_name='会议任务跟踪表.xlsx',
+                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     )
-                    st.info("💡 你可以下载此表并发给行政部门，或者导入到公司的项目管理软件中。")
+                    st.info("💡 您可以下载此表，结合实际修改后直接用于工作汇报或分发。")
                 except Exception as e:
                     st.error(f"提取失败，AI可能没按格式输出，请重试。错误信息：{e}")
