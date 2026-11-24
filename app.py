@@ -8,6 +8,58 @@ import io
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="AI 智能会议助手", page_icon="📅", layout="wide")
 
+# ================= 顶部固定蓝条 CSS =================
+st.markdown("""
+<style>
+    /* 隐藏原生顶栏 */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    
+    /* 给主内容区留出顶部空间 */
+    .block-container {
+        padding-top: 5rem !important;
+    }
+
+    /* 蓝色渐变横幅：固定在最上方，避开左侧导航栏 */
+    .ai-banner {
+        position: fixed;
+        top: 0;
+        left: 21rem; /* 避开侧边栏宽度 */
+        width: calc(100vw - 21rem); /* 宽度自适应 */
+        height: 60px;
+        z-index: 99999;
+        background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s ease; /* 平滑过渡 */
+    }
+    
+    .ai-banner h1 {
+        color: white !important;
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 600;
+    }
+
+    /* 核心：监听侧边栏折叠，动态调整宽度 */
+    section[data-testid="stSidebar"][aria-expanded="false"] + div .ai-banner {
+        left: 0 !important;
+        width: 100vw !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 渲染固定横幅
+st.markdown("""
+<div class="ai-banner">
+    <h1>AI 智能会议助手</h1>
+</div>
+""", unsafe_allow_html=True)
+
 # ================= 数据库初始化 =================
 def init_db():
     conn = sqlite3.connect('meeting.db')
@@ -22,20 +74,14 @@ init_db()
 
 # ================= 侧边栏 =================
 st.sidebar.header("功能导航")
-# 修改点：导航2名称改变
 menu = st.sidebar.radio("选择功能", ["1. 会议室申请", "2. 会议通知", "3. AI 纪要风格仿写", "4. 决议事项与任务提取"])
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ AI 引擎设置")
 api_key = st.sidebar.text_input("DeepSeek API Key", type="password", help="填入你自己的 API Key，仅在当前会话有效。")
 
-# ================= 顶部标题 =================
-# 修改点：前面加上了 AI
-st.title("📅 AI 智能会议助手")
-
 # ================= 功能一：会议室申请 =================
 if menu == "1. 会议室申请":
-    # 修改点：拉开视觉层级
     st.markdown("## 📌 会议室申请管理")
     col1, col2 = st.columns([1, 1.5])
     
@@ -132,7 +178,6 @@ if menu == "1. 会议室申请":
 
 # ================= 功能二：会议通知 =================
 elif menu == "2. 会议通知":
-    # 修改点：页面标题统一
     st.markdown("## 📌 会议通知与议程生成")
     
     tab1, tab2 = st.tabs(["📝 快速文本通知", "📄 正式会议议程 (导出Word)"])
@@ -344,7 +389,6 @@ elif menu == "3. AI 纪要风格仿写":
                     st.text_area("👇 生成的会议纪要", value=ai_result, height=300)
                     st.session_state['latest_minutes'] = ai_result
                     
-                    # 修改点：温和专业的提示语
                     st.info("📌 温馨提示：AI 生成内容仅供参考，请结合实际会议情况核对关键信息后再行发布。")
                 except Exception as e:
                     st.error(f"调用失败，请检查 Key 或网络。错误信息：{e}")
@@ -365,7 +409,6 @@ elif menu == "4. 决议事项与任务提取":
             st.warning("请提供纪要内容。")
         else:
             with st.spinner("AI 正在扮演项目经理，识别关键任务..."):
-                # 修改点：过滤未定时间的任务
                 prompt = f"""你是一个专业的项目管理助手。请阅读以下会议纪要，提取出所有的“工作事项/任务”。
 请务必以纯 CSV 格式输出（第一行是表头），包含四列：任务事项, 责任人/部门, 完成时限, 具体要求。
 请特别注意：只提取有明确时间节点（如“5月10日”、“近日”、“按节点要求”）的任务。如果纪要中没有明确时间，请直接忽略该项任务，不要输出。
@@ -391,7 +434,6 @@ elif menu == "4. 决议事项与任务提取":
                     st.success("提取成功！已生成任务跟踪表。")
                     st.dataframe(df, use_container_width=True)
                     
-                    # 修改点：生成带格式的 Excel
                     excel_io = io.BytesIO()
                     with pd.ExcelWriter(excel_io, engine='xlsxwriter') as writer:
                         df.to_excel(writer, index=False, sheet_name='任务跟踪表')
@@ -399,19 +441,17 @@ elif menu == "4. 决议事项与任务提取":
                         workbook = writer.book
                         worksheet = writer.sheets['任务跟踪表']
                         
-                        # 定义格式：表头蓝底白字加粗
                         header_format = workbook.add_format({
                             'bold': True,
                             'text_wrap': True,
                             'valign': 'vcenter',
                             'align': 'center',
-                            'fg_color': '#3B82F6', # 蓝色底
-                            'font_color': 'white', # 白字
+                            'fg_color': '#3B82F6',
+                            'font_color': 'white',
                             'border': 1,
                             'border_color': '#000000'
                         })
                         
-                        # 定义格式：单元格自动换行，左对齐，边框
                         cell_format = workbook.add_format({
                             'text_wrap': True,
                             'valign': 'vcenter',
@@ -420,23 +460,20 @@ elif menu == "4. 决议事项与任务提取":
                             'border_color': '#D3D3D3'
                         })
                         
-                        # 写入表头
                         for col_num, value in enumerate(df.columns.values):
                             worksheet.write(0, col_num, value, header_format)
                             
-                        # 写入内容并调整列宽
                         for row_num in range(1, len(df) + 1):
                             for col_num, value in enumerate(df.iloc[row_num-1]):
                                 worksheet.write(row_num, col_num, value, cell_format)
                                 
-                        worksheet.set_column('A:A', 30) # 任务事项列宽
-                        worksheet.set_column('B:B', 15) # 责任人列宽
-                        worksheet.set_column('C:C', 15) # 完成时限列宽
-                        worksheet.set_column('D:D', 40) # 具体要求列宽
+                        worksheet.set_column('A:A', 30)
+                        worksheet.set_column('B:B', 15)
+                        worksheet.set_column('C:C', 15)
+                        worksheet.set_column('D:D', 40)
 
                     excel_data = excel_io.getvalue()
                     
-                    # 修改点：底部提示文案
                     st.download_button(
                         label="📥 下载精美任务清单 (Excel)",
                         data=excel_data,
