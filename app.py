@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import requests
 import pandas as pd
 import io
+import streamlit.components.v1 as components
 
 # ================= 页面基础设置 =================
 st.set_page_config(page_title="AI 智能会议助手", page_icon="📅", layout="wide")
@@ -11,22 +12,28 @@ st.set_page_config(page_title="AI 智能会议助手", page_icon="📅", layout=
 # 注入全局 CSS 样式
 st.markdown("""
 <style>
-    /* 1. 核心：只把原生顶栏变透明，不要 display: none，否则折叠按钮会消失 */
+    /* 1. 只把原生顶栏变透明。
+       注意：千万不要 display:none 整个 header 或整个 stToolbar，
+       否则侧边栏的“展开/收起”按钮会被一起藏掉，
+       侧边栏一旦收起就再也打不开（这就是“一隐藏就消失”的原因）。 */
     header[data-testid="stHeader"] {
         background-color: transparent !important;
     }
-    
-    /* 隐藏右上角自带的 Share、GitHub 等小图标，让蓝条更干净 */
-    div[data-testid="stStatusWidget"] { display: none !important; }
-    header[data-testid="stHeader"] div[data-testid="stToolbar"] { display: none !important; }
 
-    /* 2. 蓝条样式：加大高度到 80px */
+    /* 仅隐藏右上角状态小部件；保留 stToolbar，从而保住侧边栏开合按钮 */
+    div[data-testid="stStatusWidget"] { display: none !important; }
+
+    /* 只精准隐藏新版自带的 Deploy 按钮，切勿 display:none 整个 stToolbar，
+       否则会连带藏掉侧边栏的展开/收起按钮 */
+    [data-testid="stAppDeployButton"] { display: none !important; }
+
+    /* 2. 蓝条样式：高度 80px */
     .right-fixed-header {
         position: fixed;
         top: 0;
-        left: 21rem; /* 避开侧边栏 */
+        left: 21rem; /* 侧边栏展开时，从侧边栏右侧开始 */
         right: 0;
-        height: 80px; /* 高度加大 */
+        height: 80px;
         z-index: 99999;
         background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
         color: white;
@@ -34,22 +41,23 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: left 0.3s ease;
     }
     .right-fixed-header h1 {
         color: white !important;
         margin: 0;
-        font-size: 2.2rem; /* 字体稍微放大 */
+        font-size: 2.2rem;
         font-weight: 600;
-        letter-spacing: 2px; /* 增加字间距，显得更大气 */
+        letter-spacing: 2px;
     }
 
-    /* 3. 监听侧边栏折叠状态：折叠时蓝条自动贴边 */
-    section[data-testid="stSidebar"][aria-expanded="false"] + div .right-fixed-header {
+    /* 3. 侧边栏折叠时（由下方 JS 给 body 加上 .sidebar-collapsed），蓝条自动贴左通栏。
+       旧版用 aria-expanded，新版改用 data-collapsed，这里交给 JS 统一判断，CSS 只负责响应。 */
+    body.sidebar-collapsed .right-fixed-header {
         left: 0 !important;
-        transition: left 0.3s ease;
     }
 
-    /* 4. 给主内容区留出空间，因为蓝条变高了，这里也要同步加大 */
+    /* 4. 主内容区顶部留白，给固定蓝条让位 */
     .block-container {
         padding-top: 6.5rem !important;
     }
@@ -62,6 +70,37 @@ st.markdown("""
     <h1>AI 智能会议助手</h1>
 </div>
 """, unsafe_allow_html=True)
+
+# 监听侧边栏折叠状态：兼容旧版 aria-expanded 与新版 data-collapsed，
+# 检测到折叠后给 body 加 .sidebar-collapsed，让蓝条自动通栏；展开时移除。
+# 用轮询而非单一 CSS 选择器，避免 Streamlit 版本升级后选择器失效。
+components.html("""
+<script>
+(function () {
+  var doc = window.parent.document;
+
+  function applyState() {
+    var sb = doc.querySelector('section[data-testid="stSidebar"]');
+    var collapsed =
+      !sb ||
+      sb.getAttribute('data-collapsed') === 'true' ||
+      sb.getAttribute('aria-expanded') === 'false' ||
+      sb.offsetWidth === 0;
+    doc.body.classList.toggle('sidebar-collapsed', collapsed);
+  }
+
+  // 定时轮询，覆盖折叠动画过程与版本差异
+  setInterval(applyState, 400);
+  // 任意点击后延迟再判断一次（点的就是折叠/展开按钮）
+  doc.addEventListener('click', function () {
+    setTimeout(applyState, 350);
+    setTimeout(applyState, 900);
+  });
+  window.addEventListener('load', applyState);
+  applyState();
+})();
+</script>
+""", height=0)
 
 # ================= 数据库初始化 =================
 def init_db():
